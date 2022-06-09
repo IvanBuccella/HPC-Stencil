@@ -8,7 +8,7 @@
 #include <sys/time.h>
 #include <omp.h>
 
-int N = 45056, x, y, n_threads;
+int N = 32768, x, y, n_threads;
 float a = 2, b = 3, **A, **B;
 double t_init;
 
