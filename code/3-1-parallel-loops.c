@@ -46,4 +46,7 @@ int main()
         }
     }
     printf("Parallel loops on X: %0.15f\n", omp_get_wtime() - t_init);
+
+    free(A);
+    free(B);
 }

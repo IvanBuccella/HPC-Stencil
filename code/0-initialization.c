@@ -30,4 +30,7 @@ int main()
         }
     }
     printf("Initialization: %0.15f\n", omp_get_wtime() - t_init);
+
+    free(A);
+    free(B);
 }
