@@ -1,5 +1,17 @@
 # My Experiment on Stencil Computation Code Optimization
 
+## Summary
+
+- **[Architecture](#architecture)**
+  - **[CPU](#cpu)**
+  - **[Memory](#memory)**
+- **[Execution Timings](#execution-timings)**
+  - **[Initialization](#initialization)**
+  - **[Loop interchange](#loop-interchange)**
+  - **[Optimization flags](#optimization-flags)**
+  - **[Parallel loops](#parallel-loops)**
+  - **[Tiling](#tiling)**
+
 ## Architecture
 
 ### CPU
