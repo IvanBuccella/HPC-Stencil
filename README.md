@@ -11,7 +11,7 @@
   - **[Optimization flags](#optimization-flags)**
   - **[Parallel loops](#parallel-loops)**
   - **[Tiling](#tiling)**
-  - **[Dimension Augmentation (3-dimensional)](#dimension-augmentation)**
+  - **[Dimension Augmentation (3-dimensional)](#dimension-augmentation-3-dimensional)**
 
 ## Architecture
 
