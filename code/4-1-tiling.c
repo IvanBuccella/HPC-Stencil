@@ -37,7 +37,9 @@ int main()
 
     initialization();
 
-    int tile_size = 16;
+    // L2 Cache dimension: 1572864 bytes - Maximum tile size should be 2730
+
+    const int tile_size = 2730;
     t_init = omp_get_wtime();
 #pragma omp parallel for collapse(2)
     for (int xx = 0; xx < N; xx += tile_size)

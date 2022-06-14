@@ -25,6 +25,7 @@ Cache L1d: 192 KiB (6 instances) \
 Cache L1i: 192 KiB (6 instances) \
 Cache L2: 1.5 MiB (6 instances) \
 Cache L3: 9 MiB (1 instance)
+Intel Hyper-Threading Technology: No
 
 ### Memory
 
