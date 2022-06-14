@@ -25,7 +25,7 @@ void initialization()
             B[x][y] = 0.0f;
         }
     }
-    printf("Initialization: %0.15f\n", omp_get_wtime() - t_init);
+    // printf("Initialization: %0.15f\n", omp_get_wtime() - t_init);
 }
 
 int main()
@@ -37,9 +37,7 @@ int main()
 
     initialization();
 
-    // L2 Cache dimension: 1572864 bytes - Maximum tile size should be 2730
-
-    const int tile_size = 2730;
+    const int tile_size = 16384;
     t_init = omp_get_wtime();
 #pragma omp parallel for collapse(2)
     for (int xx = 0; xx < N; xx += tile_size)

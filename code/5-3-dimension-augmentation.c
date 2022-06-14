@@ -1,9 +1,10 @@
-// clang 3-3-parallel-loops.c -o 3-3-parallel-loops.out -fopenmp -O2
+// clang 4-1-tiling.c -o 4-1-tiling.out -fopenmp -O2
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <omp.h>
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
 int N = 32768, x, y, n_threads;
 float a = 2, b = 3, **A, **B;
@@ -36,18 +37,23 @@ int main()
 
     initialization();
 
+    const int tile_size = 8192;
     t_init = omp_get_wtime();
-
 #pragma omp parallel for collapse(2)
-    for (x = 1; x < N - 1; x++)
+    for (int xx = 0; xx < N; xx += tile_size)
     {
-        for (y = 1; y < N - 1; y++)
+        for (int yy = 0; yy < N; yy += tile_size)
         {
-            B[x][y] = a * A[x][y] + b * (A[x - 1][y] + A[x + 1][y] + A[x][y - 1] + A[x][y + 1]);
+            for (x = xx + 3; x < MIN(xx + tile_size, N - 3); x = x + 3)
+            {
+                for (y = yy + 3; y < MIN(yy + tile_size, N - 3); y = y + 3)
+                {
+                    B[x][y] = a * A[x][y] + b * (A[x - 3][y] + A[x - 2][y] + A[x - 1][y] + A[x + 1][y] + A[x + 2][y] + A[x + 3][y] + A[x][y - 3] + A[x][y - 2] + A[x][y - 1] + A[x][y + 1] + A[x][y + 2] + A[x][y + 3]);
+                }
+            }
         }
     }
-
-    printf("Parallel loops on X and Y: %0.15f\n", omp_get_wtime() - t_init);
+    printf("Dimension Augmentation - Tiling with size of %d: %0.15f\n", tile_size, omp_get_wtime() - t_init);
 
     free(A);
     free(B);

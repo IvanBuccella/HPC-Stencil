@@ -1,4 +1,7 @@
-// clang 3-3-parallel-loops.c -o 3-3-parallel-loops.out -fopenmp -O2
+// clang 2-optimization-flags.c -o 2-optimization-flags.out -fopenmp -O0
+// clang 2-optimization-flags.c -o 2-optimization-flags.out -fopenmp -O1
+// clang 2-optimization-flags.c -o 2-optimization-flags.out -fopenmp -O2
+// clang 2-optimization-flags.c -o 2-optimization-flags.out -fopenmp -O3
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,8 +40,6 @@ int main()
     initialization();
 
     t_init = omp_get_wtime();
-
-#pragma omp parallel for collapse(2)
     for (x = 1; x < N - 1; x++)
     {
         for (y = 1; y < N - 1; y++)
@@ -46,8 +47,7 @@ int main()
             B[x][y] = a * A[x][y] + b * (A[x - 1][y] + A[x + 1][y] + A[x][y - 1] + A[x][y + 1]);
         }
     }
-
-    printf("Parallel loops on X and Y: %0.15f\n", omp_get_wtime() - t_init);
+    printf("Optimization Flags: %0.15f\n", omp_get_wtime() - t_init);
 
     free(A);
     free(B);

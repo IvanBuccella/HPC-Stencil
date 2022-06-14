@@ -24,7 +24,7 @@ void initialization()
             B[x][y] = 0.0f;
         }
     }
-    printf("Initialization: %0.15f\n", omp_get_wtime() - t_init);
+    // printf("Initialization: %0.15f\n", omp_get_wtime() - t_init);
 }
 
 int main()
