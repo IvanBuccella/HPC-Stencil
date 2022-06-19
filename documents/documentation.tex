@@ -1,6 +1,6 @@
 \documentclass[conference]{IEEEtran}
 %\usepackage{spconf,amsmath,amssymb,graphicx}
-\usepackage{amsmath,amssymb,graphicx,caption,listings}
+\usepackage{amsmath,amssymb,graphicx,caption,listings,hyperref,graphicx}
 
 % Example definitions.
 % --------------------
@@ -9,6 +9,8 @@
 \newcommand{\C}[0]{\mathbb{C}}
 % bold paragraph titles
 \newcommand{\mypar}[1]{{\bf #1.}}
+\newcommand{\mysubpar}[2]{{\bf #1.}}
+\graphicspath{ {./images/} }
 
 \lstset{frame=tb,
   language=C,
@@ -36,14 +38,14 @@
 \maketitle
 
 \begin{abstract}
-This document tries to apply several types of optimizations to a Stencil computation algorithm, in order to minimize the computation execution time. In this document are treated the concepts of OpenMP multithreading code optimizations, loop interchange optimization, parallel loops optimizations, and loop tiling optimizations. From the experiment results, the best optimization to apply to the chosen Stencil computation algorithm is loop tiling.
+This article tries to apply several types of optimizations to a Stencil computation algorithm, in order to minimize the computation execution time. In this document are treated the concepts of OpenMP multithreading code optimizations, loop interchange optimization, parallel loops optimizations, and loop tiling optimizations. From the experiment results, the best optimization to apply to the chosen Stencil computation algorithm is loop tiling. It also tries to increase the algorithm dimension on the optimized code in order to compare the performances increase/decrease.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
 
-Stencil computation has been a research topic for decades in a variety of domains including computational electromagnetics \cite{taflove}, solution of PDEs using finite difference or finite volume discretizations \cite{smith}, and image processing for CT and MRI imaging \cite{cong-huang-zou}\cite{cong-zou}. In the finite-difference computation process, stencil computation is often iteratively used to solve the differential operator. In these scientific and engineering applications, Stencil is often the most vital and time-consuming computing kernel.\cite{su-zhang-mei}
+Stencil computation has been a research topic for decades in a variety of domains including computational electromagnetics \cite{taflove}, solution of PDEs using finite difference or finite volume discretizations \cite{smith}, and image processing for CT and MRI imaging \cite{cong-huang-zou}\cite{cong-zou}. In the finite-difference computation process, stencil computation is often iteratively used to solve the differential operator. In these scientific and engineering applications, Stencil is often the most vital and time-consuming computing kernel \cite{su-zhang-mei}.
 
-The general computation pattern of stencil computation is that the central point accumulates the contributions of neighbor points in every axis of the Cartesian coordinate system.\cite{su-zhang-mei} The number of neighbor points in each axis or grid step of the stencil computation corresponds to the accuracy of the stencil. The more neighbor elements involved in the computation, the higher accuracy the computation obtains. The computation is then repeated for every point of the grid domain as an iterative operator of the PDEs. Due to the structure of the stencil computation, two inherent problems exist:
+The general computation pattern of stencil computation is that the central point accumulates the contributions of neighbor points in every axis of the Cartesian coordinate system \cite{su-zhang-mei}. The number of neighbor points in each axis or grid step of the stencil computation corresponds to the accuracy of the stencil. The more neighbor elements involved in the computation, the higher accuracy the computation obtains. The computation is then repeated for every point of the grid domain as an iterative operator of the PDEs. Due to the structure of the stencil computation, two inherent problems exist:
 \begin{itemize}
 	\item First, it is the non-continuous memory access pattern. There exist distances among elements needed for the computation except those in the innermost or unit-stride dimension. Many more cycles in latencies are required to access these points. 
 	\item Second, it is the low arithmetic intensity and poor data reuse. Just one point is updated with all the elements loaded. The data reuse between two updates is also limited within the unit-stride dimension, while the other dimensions' elements that are expensive to access have no data reuse at all.
@@ -51,7 +53,7 @@ The general computation pattern of stencil computation is that the central point
 
 
 \mypar{Motivation} 
-On the stencil computation various optimization approaches have been discussed. The main contributions for stencil optimization can be divided into two aspects: blocking and parallelism optimizations.\cite{su-zhang-mei}
+On the stencil computation various optimization approaches have been discussed. The main contributions for stencil optimization can be divided into two aspects: blocking and parallelism optimizations \cite{su-zhang-mei}.
 
 Blocking optimizations aim at improving the data locality of both space and time dimensions. They are highly related to the tiling strategies widely employed in the modern multi-level cache hierarchy architectures.
  
@@ -60,37 +62,37 @@ Parallelism optimizations refer to the techniques that explore parallelism at di
 However, these optimizations can be categorized according to their complexity of implementation (programmer efforts), benefit improvement (performance) and implementation tightness regarding hardware (dependence) \cite{cruz}.
 
 \mypar{Related work} 
-The article `\textit{Acceleration of real-life stencil codes on GPUs}' \cite{barigou} there is a detailed description of the loop tiling transformation, the CUDA programming model, and GPU architecture consists. Then, it explores the possible tiling approaches that can be applied to such stencil patterns; it describes 3 interesting approaches: 2D tiles, time-skewing+time-tiling transformation, and performing redundant computations inside tiles.
+In the article `\textit{Acceleration of real-life stencil codes on GPUs}' \cite{barigou} there is a detailed description of the loop tiling transformation, the CUDA programming model, and GPU architecture consists. Then, it explores the possible tiling approaches that can be applied to such stencil patterns; it describes 3 interesting approaches: 2D tiles, time-skewing+time-tiling transformation, and performing redundant computations inside tiles.
 
-The article `\textit{High-Performance Code Generation for Stencil Computations on GPU Architectures}' \cite{holewinski-pouchet-sadayappan}  is introduced an automatic code generation scheme for stencil computations on GPU architectures. This scheme uses overlapped tiling to provide efficient time tiling on GPU architectures, which are massively threaded but are susceptible to performance degradation due to branch divergence and a lack of memory coalescing. 
+The article `\textit{High-Performance Code Generation for Stencil Computations on GPU Architectures}' \cite{holewinski-pouchet-sadayappan} introduces an automatic code generation scheme for stencil computations on GPU architectures. This scheme uses overlapped tiling to provide efficient time tiling on GPU architectures, which are massively threaded but are susceptible to performance degradation due to branch divergence and a lack of memory coalescing. 
 
-However, what we will try to do is to apply multi-core architecture optimizations using OpenMP, instead of CUDA programming models and GPU architecture.
+However, this article tries to apply multi-core architecture optimizations using OpenMP instead of using CUDA programming models and GPU architecture like in the related works.
 
 \section{Background}\label{sec:background}
 
 In order to understand the described work, it is important to know something about multi-core, and code optimizations using OpenMP.
 
 \mypar{The multi-core architecture}
-Multicore refers to an architecture in which a single physical processor incorporates the core logic of more than one processor. A single integrated circuit is used to package or hold these processors. These single integrated circuits are known as a die. Multicore architecture places multiple processor cores and bundles them as a single physical processor. The objective is to create a system that can complete more tasks at the same time, thereby gaining better overall system performance. \cite{techopedia}
+Multicore refers to an architecture in which a single physical processor incorporates the core logic of more than one processor. A single integrated circuit is used to package or hold these processors. These single integrated circuits are known as a die. Multicore architecture places multiple processor cores and bundles them as a single physical processor. The objective is to create a system that can complete more tasks at the same time, thereby gaining better overall system performance \cite{techopedia}.
 
 \mypar{OpenMP}
-The OpenMP API supports multi-platform shared-memory parallel programming in C/C++ and Fortran. The OpenMP API defines a portable, scalable model with a simple and flexible interface for developing parallel applications on platforms from the desktop to the supercomputer. \cite{openmp}
+The OpenMP API supports multi-platform shared-memory parallel programming in C/C++ and Fortran. The OpenMP API defines a portable, scalable model with a simple and flexible interface for developing parallel applications on platforms from the desktop to the supercomputer \cite{openmp}.
 
-\mypar{Loop Interchange}
-In compiler theory, loop interchange is the process of exchanging the order of two iteration variables used by a nested loop. The variable used in the inner loop switches to the outer loop, and vice versa. It is often done to ensure that the elements of a multi-dimensional array are accessed in the order in which they are present in memory, improving the locality of reference. \cite{loop-interchange}
+\mypar{Loop interchange}
+In compiler theory, loop interchange is the process of exchanging the order of two iteration variables used by a nested loop. The variable used in the inner loop switches to the outer loop, and vice versa. It is often done to ensure that the elements of a multi-dimensional array are accessed in the order in which they are present in memory, improving the locality of reference \cite{loop-interchange}.
 
-\mypar{Optimization Flags}
+\mypar{Optimization flags}
 Without any optimization option, the compiler's goal is to reduce the cost of compilation and to make debugging produce the expected results. Statements are independent: if you stop the program with a breakpoint between statements, you can then assign a new value to any variable or change the program counter to any other statement in the function and get exactly the results you expect from the source code. 
 Turning on optimization flags makes the compiler attempt to improve the performance and/or code size at the expense of compilation time and possibly the ability to debug the program. 
 The compiler performs optimization based on the knowledge it has of the program. 
-Depending on the target and how the compiler was configured, a slightly different set of optimizations may be enabled at each -O level (\textit{-O1},\textit{-O2},\textit{-O3},\textit{-O4}).\cite{optimization-flags}
+Depending on the target and how the compiler was configured, a slightly different set of optimizations may be enabled at each -O level (\textit{-O0},\textit{-O1},\textit{-O2},\textit{-O3}) \cite{optimization-flags}.
 
-\mypar{Parallel Loops}
+\mypar{Parallel loops}
 A parallel for loop is a for loop in which the statements in the loop can be run in parallel: on separate cores, processors, or threads. 
-In OpenMP the \textit{parallel loop} construct is a shortcut for specifying a parallel construct containing a loop construct with one or more associated loops and no other statements. \cite{parallel-loops}
+In OpenMP the \textit{parallel loop} construct is a shortcut for specifying a parallel construct containing a loop construct with one or more associated loops and no other statements \cite{omp-parallel}. 
 
-\mypar{Loop Tiling}
-Loop tiling transformation (or simply tiling) consists of partitioning an iteration domain into many regular and uniform tiles \cite{barigou}. A tile is thus a subset of iteration points. Executing a tile corresponds to the execution of all the iteration points it contains. A tiles execution is atomic, which means if a tile execution starts, it cannot be interrupted until it reaches its last iteration point. This condition implies that no data can be exchanged between two concurrent tiles. This transformation allows data to be accessed in blocks (tiles), with the block size defined as a parameter of this transformation. Each loop is transformed into two loops: one iterating inside each block (intratile) and the other one iterating over the blocks (intertile). \cite{loop-tiling}
+\mypar{Loop tiling}
+Loop tiling transformation (or simply tiling) consists of partitioning an iteration domain into many regular and uniform tiles \cite{barigou}. A tile is thus a subset of iteration points. Executing a tile corresponds to the execution of all the iteration points it contains. A tiles execution is atomic, which means if a tile execution starts, it cannot be interrupted until it reaches its last iteration point. This condition implies that no data can be exchanged between two concurrent tiles. This transformation allows data to be accessed in blocks (tiles), with the block size defined as a parameter of this transformation. Each loop is transformed into two loops: one iterating inside each block (intratile) and the other one iterating over the blocks (intertile) \cite{loop-tiling}. 
 
 \section{The applied method}\label{sec:yourmethod}
 
@@ -108,13 +110,13 @@ for (x = 1; x < N - 1; x++)
 }
 \end{lstlisting}
 
-\mypar{Loop Interchange}
+\mypar{Loop interchange}
 The first step is editing the starting algorithm by exchanging the order of the iteration variables \textbf{x} and \textbf{y} used by nested loops. The result is two different algorithms:
 
 \setcounter{lstlisting}{0}
 \renewcommand{\lstlistingname}{Algorithm}
 
-\begin{lstlisting}[caption=The starting algorithm]
+\begin{lstlisting}[caption={The starting algorithm},label={lst:loop-interchange-x-y}]
 for (x = 1; x < N - 1; x++)
 {
 		for (y = 1; y < N - 1; y++)
@@ -124,7 +126,7 @@ for (x = 1; x < N - 1; x++)
 }
 \end{lstlisting}
 
-\begin{lstlisting}[caption=A new algorithm with x and y exchanged]
+\begin{lstlisting}[caption={A new algorithm with x and y swapped},label={lst:loop-interchange-y-x}]
 for (y = 1; y < N - 1; y++)
 {
 		for (x = 1; x < N - 1; x++)
@@ -134,34 +136,35 @@ for (y = 1; y < N - 1; y++)
 }
 \end{lstlisting}
 
-\mypar{Optimization Flags}
+\mypar{Optimization flags}
 The next step is editing the optimization flag used for compiling the source code; the clang compiler offers four different flag specifications: O0, O1, O2, and O3. The result is four different commands:
 
 \setcounter{lstlisting}{0}
 \renewcommand{\lstlistingname}{Command}
 
-\begin{lstlisting}[caption=Flag -O0]
+\begin{lstlisting}[caption={Flag -O0},label={lst:optimization-flags-0}]
 clang code.c -o code.out -fopenmp -O0
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Flag -O1]
+\begin{lstlisting}[caption={Flag -O1},label={lst:optimization-flags-1}]
 clang code.c -o code.out -fopenmp -O1
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Flag -O2]
+\begin{lstlisting}[caption={Flag -O2},label={lst:optimization-flags-2}]
 clang code.c -o code.out -fopenmp -O2
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Flag -O3]
+\begin{lstlisting}[caption={Flag -O3},label={lst:optimization-flags-3}]
 clang code.c -o code.out -fopenmp -O3
 \end{lstlisting}
 
 \mypar{Parallel Loops}
-The next step is editing the code by applying the parallel loops optimization. In order to distribute the execution of a loop into multiple threads, it has been used the ``#pragma omp parallel for'' \cite{omp-parallel}\cite{omp-for} directive; this directive opens a parallel region and schedules the loop into multiple threads. The directive could be applied to each loop, also on both. For applying the directive on both loops, it has been used the ``#pragma omp parallel for collapse(2)''\cite{omp-collapse} directive which is able to distribute two nested loops on multiple threads. The result of this step is three different algorithms:
+The next step is editing the code by applying the parallel loops optimization. In order to distribute the execution of a loop into multiple threads, it has been used the ``#pragma omp parallel for'' \cite{omp-parallel}\cite{omp-for} directive; this directive opens a parallel region and schedules the loop into multiple threads. The directive could be applied to each loop, also on both. For applying the directive on both loops, it has been used the ``#pragma omp parallel for collapse(2)'' \cite{omp-collapse} directive which is able to distribute two nested loops on multiple threads. The result of this step is three different algorithms:
 
+\setcounter{lstlisting}{2}
 \renewcommand{\lstlistingname}{Algorithm}
 
-\begin{lstlisting}[caption= Parallel loop on X]
+\begin{lstlisting}[caption={Parallel loop on X},label={lst:parallel-loop-x}]
 #pragma omp parallel for
 for (x = 1; x < N - 1; x++)
 {
@@ -172,7 +175,7 @@ for (x = 1; x < N - 1; x++)
 }
 \end{lstlisting}
 
-\begin{lstlisting}[caption= Parallel loop on Y]
+\begin{lstlisting}[caption={Parallel loop on Y},label={lst:parallel-loop-y}]
 for (x = 1; x < N - 1; x++)
 {
 		#pragma omp parallel for
@@ -183,7 +186,7 @@ for (x = 1; x < N - 1; x++)
 }
 \end{lstlisting}
 
-\begin{lstlisting}[caption= Parallel loop on X and Y]
+\begin{lstlisting}[caption={Parallel loop on X and Y},label={lst:parallel-loop-x-y}]
 #pragma omp parallel for collapse(2)
 for (x = 1; x < N - 1; x++)
 {
@@ -194,12 +197,12 @@ for (x = 1; x < N - 1; x++)
 }
 \end{lstlisting}
 
-\mypar{Loop Tiling}
-The next step is editing the code by applying tiling optimization. In order to apply this type of optimization it has been necessary to cut the \textbf{A} matrices into multiple smaller \textit{tiles}; due to it has been introduced into the code a new variable ``tile\textunderscore size'' which expresses the tile size, and two nested loops that have the goal of executing the code on the different tiles. On the tiling loops (with \textit{xx} and \textit{yy} variables) it has been applied the ``#pragma omp parallel for collapse(2)'' directive has in order to distribute the matrices tiles on multiple threads. Different tile sizes have been chosen depending on several points of view like L2 Cache size, etc. The result of this step is four different algorithms, identical but with different tile sizes:
+\mypar{Loop tiling}
+The next step is editing the code by applying tiling optimization. In order to apply this type of optimization it has been necessary to cut the \textbf{A} matrices into multiple smaller \textit{tiles}; due to it has been introduced into the code a new variable ``tile\textunderscore size'' which expresses the tile size, and two nested loops that have the goal of executing the code on the different tiles. On the tiling loops (with \textit{xx} and \textit{yy} variables) it has been applied the ``#pragma omp parallel for collapse(2)'' directive in order to distribute the matrices tiles on multiple threads. Different tile sizes have been chosen depending on several points of view like L2 Cache size, etc. The result of this step is four different algorithms, identical but with different tile sizes:
 
 \renewcommand{\lstlistingname}{Algorithm}
 
-\begin{lstlisting}[caption= Tiling with size of 16384]
+\begin{lstlisting}[caption={Loop tiling with size of 16384},label={lst:tiling-1}]
 const int tile_size = 16384;
 #pragma omp parallel for collapse(2)
 for (int xx = 0; xx < N; xx += tile_size)
@@ -217,27 +220,27 @@ for (int xx = 0; xx < N; xx += tile_size)
 }
 \end{lstlisting}
 
-\begin{lstlisting}[caption= Tiling with size of 10922]
+\begin{lstlisting}[caption={Loop tiling with size of 10922},label={lst:tiling-2}]
 const int tile_size = 10922;
 ...same as before
 \end{lstlisting}
 
-\begin{lstlisting}[caption= Tiling with size of 8192]
+\begin{lstlisting}[caption={Loop tiling with size of 8192},label={lst:tiling-3}]
 const int tile_size = 8192;
 ...same as before
 \end{lstlisting} 
 
-\begin{lstlisting}[caption= Tiling with size of 5461]
+\begin{lstlisting}[caption={Loop tiling with size of 5461},label={lst:tiling-4}]
 const int tile_size = 5461;
 ...same as before
 \end{lstlisting}
 
-\mypar{Dimension Augmentation}
+\mypar{Dimension augmentation}
 The next step is editing the \textit{tiled} code by applying two more dimensions to the original stencil code. In order to apply this step, it has been necessary to edit the internal loops (with \textit{x} and \textit{y} variables) condition from ``MIN(xx + tile\textunderscore size, N - 1)'' to ``MIN(xx + tile\textunderscore size, N - 3)''. Because of the tiling optimization, the code has been executed on different tile sizes depending on several points of view like L2 Cache size, etc. The result of this step is four different algorithms, identical but with different tile sizes:
 
 \renewcommand{\lstlistingname}{Algorithm}
 
-\begin{lstlisting}
+\begin{lstlisting}[caption={Dimension augmentation + loop tiling with size of 16384},label={lst:augmentation-1}]
 const int tile_size = 16384;
 #pragma omp parallel for collapse(2)
 for (int xx = 0; xx < N; xx += tile_size)
@@ -255,25 +258,22 @@ for (int xx = 0; xx < N; xx += tile_size)
 }
 \end{lstlisting}
 
-\begin{lstlisting}[caption= Tiling with size of 10922]
+\begin{lstlisting}[caption={Dimension augmentation + loop tiling with size of 10922},label={lst:augmentation-2}]
 const int tile_size = 10922;
 ...same as before
 \end{lstlisting}
 
-\begin{lstlisting}[caption= Tiling with size of 8192]
+\begin{lstlisting}[caption={Dimension augmentation + loop tiling with size of 8192},label={lst:augmentation-3}]
 const int tile_size = 8192;
 ...same as before
 \end{lstlisting} 
 
-\begin{lstlisting}[caption= Tiling with size of 5461]
+\begin{lstlisting}[caption={Dimension augmentation + loop tiling with size of 5461},label={lst:augmentation-4}]
 const int tile_size = 5461;
 ...same as before
 \end{lstlisting}
 
 \section{Experimental Results}\label{sec:exp}
-
-Here you evaluate your work using experiments. You start again with a
-very short summary of the section. The typical structure follows.
 
 \mypar{Experimental setup} The execution timing is obtained by using the OpenMP primitives \cite{omp-get-wtime}, an example is shown in Algorithm \ref{lst:omp-get-time-alg}. The OpenMP settings are shown in Algorithm \ref{lst:omp-configs-alg}. The experiment is executed on two matrices, A and B (initialized with the Algorithm \ref{lst:initialization-alg}), with a size of constant \textbf{N = 32768} and on a PC with current specifications: 
 \begin{itemize}
@@ -300,7 +300,7 @@ very short summary of the section. The typical structure follows.
 
 \renewcommand{\lstlistingname}{Algorithm}
 
-\begin{lstlisting}[caption={An example of code for obtaining execution time},label={lst:omp-get-time-alg}]
+\begin{lstlisting}[caption={An example of code for obtaining the execution timing},label={lst:omp-get-time-alg}]
 double t_init = omp_get_wtime()
 //Your code's here
 printf("\%0.15f", omp_get_wtime() - t_init);
@@ -329,19 +329,84 @@ for (x = 0; x < N; x++)
 \end{lstlisting}
 
 \mypar{Results}
-Next divide the experiments into classes, one paragraph for each. In each class of experiments you typically pursue one questions that then is answered by a suitable plot or plots. For example, first you may want to investigate the performance behavior with changing input size, then how your code compares to external benchmarks.
+Here the following are represented the execution timings for every experiment that has been done.
+
+\begin{itemize}
+	\item \textbf{Loop interchange} computation time of: 
+	\begin{itemize}
+		\item the Algorithm \ref{lst:loop-interchange-x-y} is: 5.0533 (s) 
+		\item the Algorithm \ref{lst:loop-interchange-y-x} is: 55.8343 (s)
+	\end{itemize}
+	\begin{figure}[htbp]
+		\centering
+			\includegraphics[width=0.50\textwidth]{loop-interchange.png}
+		\caption{Loop interchange computation timings}
+		\label{fig:loop-interchange}
+	\end{figure}
+	\item \textbf{Optimization flags}:
+	\begin{itemize}
+		\item the Algorithm \ref{lst:loop-interchange-x-y} by compiling with the command \ref{lst:optimization-flags-0} is: 5.0493 (s)
+		\item the Algorithm \ref{lst:loop-interchange-x-y} by compiling with the command \ref{lst:optimization-flags-1} is: 1.3734 (s)
+		\item the Algorithm \ref{lst:loop-interchange-x-y} by compiling with the command \ref{lst:optimization-flags-2} is: 0.5931 (s)
+		\item the Algorithm \ref{lst:loop-interchange-x-y} by compiling with the command \ref{lst:optimization-flags-3} is: 0.5904 (s)
+	\end{itemize}
+	\begin{figure}[htbp]
+		\centering
+			\includegraphics[width=0.50\textwidth]{optimization-flags.png}
+		\caption{Optimization flags computation timings}
+		\label{fig:optimization-flags}
+	\end{figure}	
+	\item \textbf{Parallel loops}: 
+	\begin{itemize}
+		\item the Algorithm \ref{lst:parallel-loop-x} is: 0.4585 (s)
+		\item the Algorithm \ref{lst:parallel-loop-y} is: 0.4760 (s)
+		\item the Algorithm \ref{lst:parallel-loop-x-y} is: 0.7419 (s)
+	\end{itemize}
+	\begin{figure}[htbp]
+		\centering
+			\includegraphics[width=0.50\textwidth]{parallel-loops.png}
+		\caption{Parallel loops computation timings}
+		\label{fig:parallel-loops}
+	\end{figure}		
+	\item \textbf{Loop tiling}: 
+	\begin{itemize}
+		\item the Algorithm \ref{lst:tiling-1} is: 0.4451 (s)
+		\item the Algorithm \ref{lst:tiling-2} is: 0.4599 (s)
+		\item the Algorithm \ref{lst:tiling-3} is: 0.4422 (s)
+		\item the Algorithm \ref{lst:tiling-4} is: 0.4537 (s)
+	\end{itemize}	
+	\begin{figure}[htbp]
+		\centering
+			\includegraphics[width=0.50\textwidth]{loop-tiling.png}
+		\caption{Loop tiling computation timings}
+		\label{fig:loop-tiling}
+	\end{figure}		
+	\item \textbf{Dimension augmentation}: 
+	\begin{itemize}
+		\item the Algorithm \ref{lst:augmentation-1} is: 0.2649 (s)
+		\item the Algorithm \ref{lst:augmentation-2} is: 0.2911 (s)
+		\item the Algorithm \ref{lst:augmentation-3} is: 0.2645 (s)
+		\item the Algorithm \ref{lst:augmentation-4} is: 0.2676 (s)
+	\end{itemize}	
+	\begin{figure}[htbp]
+		\centering
+			\includegraphics[width=0.50\textwidth]{dimension-augmentation.png}
+		\caption{Dimension augmentation computation timings}
+		\label{fig:dimension-augmentation}
+	\end{figure}
+\end{itemize}
 
 \section{Conclusions}
+This article presents a number of different approaches to optimize the above-detailed stencil computations algorithm on multi-core architectures, based on a
+range of micro benchmarks.
+For the \textbf{loop interchange} optimization, it indicates that the standard loop \textit{x-y} is faster than the \textit{y-x} loop, this is favored by the C programming language memory layout.
+For the \textbf{optimization flags} optimization, it indicates that the best flag to use for compiling the code is the -O3.
+For the \textbf{parallel loop} optimization, it indicates that having only one parallel loop on the external loop is faster.
+For the \textbf{loop tiling} optimization, it indicates that having a \textit{tile\textunderscore size} of \textit{8192} is faster.
+About the \textbf{dimension} of the Stencil computation algorithm, it shows that by augmenting the number of dimensions of two, the computation is faster with \textbf{loop tiling} optimization than having a lower number of dimensions.
 
-Here you need to summarize what you did and why this is
-important. {\em Do not take the abstract} and put it in the past
-tense. Remember, now the reader has (hopefully) read the report, so it
-is a very different situation from the abstract. Try to highlight
-important results and say the things you really want to get across
-such as high-level statements (e.g., we believe that .... is the right
-approach to .... Even though we only considered x, the
-.... technique should be applicable ....) You can also formulate next
-steps if you want. Be brief. 
+In future work, would be interesting to try to implement what is the maximum number of dimension augmentation that offers a lower computation timing.
+
 
 \begin{thebibliography}{1}
 
@@ -370,34 +435,31 @@ Youcef Barigou. Acceleration of real-life stencil codes on GPUs. Hardware Archit
 Justin Holewinski, Louis-Noël Pouchet, P. Sadayappan. High-Performance Code Generation for Stencil Computations on GPU Architectures.
 
 \bibitem{techopedia}
-Multicore. https://www.techopedia.com/definition/5305/multicore
+\href{https://www.techopedia.com/definition/5305/multicore}{Multi-core}
 
 \bibitem{openmp}
-OpenMP. https://www.openmp.org/
+\href{https://www.openmp.org/}{OpenMP}
 
 \bibitem{loop-interchange}
-Loop interchange. https://en.wikipedia.org/wiki/Loop_interchange
+\href{https://en.wikipedia.org/wiki/Loop_interchange}{Loop interchange}
 
 \bibitem{optimization-flags}
-Options That Control Optimization. https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html
-
-\bibitem{parallel-loops}
-Parallel Loop Construct. https://www.openmp.org/spec-html/5.0/openmpsu64.html
-
+\href{https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html}{Options That Control Optimization}
+ 
 \bibitem{loop-tiling}
 João M.P.Cardoso, José Gabriel F. Coutinho, Pedro C. Diniz. Chapter 5 - Source code transformations and optimizations. Embedded Computing for High Performance
 
 \bibitem{omp-get-wtime}
-OMP GET WTIME. https://www.openmp.org/spec-html/5.0/openmpsu160.html
+\href{https://www.openmp.org/spec-html/5.0/openmpsu160.html}{omp\textunderscore get\textunderscore wtime() function}
 
 \bibitem{omp-parallel} 
-OpenMP API 5 Specification. OMP Parallel. https://www.openmp.org/specifications/
+\href{https://www.openmp.org/specifications/}{OpenMP API 5 Specification. OMP Parallel.}
 
 \bibitem{omp-for}
-OpenMP API 5 Specification. OMP For. https://www.openmp.org/specifications/
+\href{https://www.openmp.org/specifications/}{OpenMP API 5 Specification. OMP For.}
 
 \bibitem{omp-collapse}
-OpenMP API 5 Specification. Collapse. https://www.openmp.org/specifications/
+\href{https://www.openmp.org/specifications/}{OpenMP API 5 Specification. Collapse.}
 
 \end{thebibliography}
 
