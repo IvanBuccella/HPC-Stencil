@@ -397,13 +397,31 @@ Here the following are represented the execution timings for every experiment th
 \end{itemize}
 
 \section{Conclusions}
-This article presents a number of different approaches to optimize the above-detailed Stencil computations algorithm on multi-core architectures, based on a
-range of micro benchmarks.
+This article presents a number of different approaches to optimize the above-detailed Stencil computations algorithm on multi-core architectures, based on a range of micro benchmarks.
 For the \textbf{loop interchange} optimization, it indicates that the standard loop \textit{x-y} is faster than the \textit{y-x} loop, this is favored by the C programming language memory layout.
 For the \textbf{optimization flags} optimization, it indicates that the best flag to use for compiling the code is the -O3.
 For the \textbf{parallel loop} optimization, it indicates that having only one parallel loop on the external loop is faster.
 For the \textbf{loop tiling} optimization, it indicates that having a \textit{tile\textunderscore size} of \textit{8192} is faster.
-About the \textbf{dimension} of the Stencil computation algorithm, it shows that by augmenting the number of dimensions of two, the computation is faster with \textbf{loop tiling} optimization than having a lower number of dimensions.
+About the \textbf{dimension} of the Stencil computation algorithm, it shows that by augmenting the number of dimensions of two, the computation is faster with \textbf{loop tiling} optimization than having a lower number of dimensions. In the table \ref{table:optimization-summary} is shown a summary with the best running time, relative and absolute speedups for every code optimization.
+
+\renewcommand{\tablename}{Table}
+
+\begin{table}[h!]
+\begin{tabular}{||l r r r||} 
+\hline
+ Implementation & Running time & Rel. speedup & Abs. speedup \\ [0.5ex] 
+ \hline\hline
+ Starting algorithm & 5.0533 & 1.00 & 1 \\
+ + Loop interchange & 5.0533 & 1.00 & 1 \\
+ + Optimization flags & 0.5904 & X & X \\
+ + Parallel loops & 0.4585 & X & X \\
+ + Loop tiling & 0.4422 & X & X \\
+ Dimension Augmentation & 0.2645 & X & X \\ [1ex] 
+\hline
+\end{tabular}
+\caption{Summary}
+\label{table:optimization-summary}
+\end{table}
 
 In future work, would be interesting to try to implement what is the maximum number of dimension augmentation that offers a lower computation timing.
 
