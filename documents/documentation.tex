@@ -43,9 +43,9 @@ This article tries to apply several types of optimizations to a Stencil computat
 
 \section{Introduction}\label{sec:intro}
 
-Stencil computation has been a research topic for decades in a variety of domains including computational electromagnetics \cite{taflove}, solution of PDEs using finite difference or finite volume discretizations \cite{smith}, and image processing for CT and MRI imaging \cite{cong-huang-zou}\cite{cong-zou}. In the finite-difference computation process, stencil computation is often iteratively used to solve the differential operator. In these scientific and engineering applications, Stencil is often the most vital and time-consuming computing kernel \cite{su-zhang-mei}.
+Stencil computation has been a research topic for decades in a variety of domains including computational electromagnetics \cite{taflove}, solution of PDEs using finite difference or finite volume discretizations \cite{smith}, and image processing for CT and MRI imaging \cite{cong-huang-zou}\cite{cong-zou}. In the finite-difference computation process, Stencil computation is often iteratively used to solve the differential operator. In these scientific and engineering applications, Stencil is often the most vital and time-consuming computing kernel \cite{su-zhang-mei}.
 
-The general computation pattern of stencil computation is that the central point accumulates the contributions of neighbor points in every axis of the Cartesian coordinate system \cite{su-zhang-mei}. The number of neighbor points in each axis or grid step of the stencil computation corresponds to the accuracy of the stencil. The more neighbor elements involved in the computation, the higher accuracy the computation obtains. The computation is then repeated for every point of the grid domain as an iterative operator of the PDEs. Due to the structure of the stencil computation, two inherent problems exist:
+The general computation pattern of Stencil computation is that the central point accumulates the contributions of neighbor points in every axis of the Cartesian coordinate system \cite{su-zhang-mei}. The number of neighbor points in each axis or grid step of the Stencil computation corresponds to the accuracy of the Stencil. The more neighbor elements involved in the computation, the higher accuracy the computation obtains. The computation is then repeated for every point of the grid domain as an iterative operator of the PDEs. Due to the structure of the Stencil computation, two inherent problems exist:
 \begin{itemize}
 	\item First, it is the non-continuous memory access pattern. There exist distances among elements needed for the computation except those in the innermost or unit-stride dimension. Many more cycles in latencies are required to access these points. 
 	\item Second, it is the low arithmetic intensity and poor data reuse. Just one point is updated with all the elements loaded. The data reuse between two updates is also limited within the unit-stride dimension, while the other dimensions' elements that are expensive to access have no data reuse at all.
@@ -53,7 +53,7 @@ The general computation pattern of stencil computation is that the central point
 
 
 \mypar{Motivation} 
-On the stencil computation various optimization approaches have been discussed. The main contributions for stencil optimization can be divided into two aspects: blocking and parallelism optimizations \cite{su-zhang-mei}.
+On the Stencil computation various optimization approaches have been discussed. The main contributions for Stencil optimization can be divided into two aspects: blocking and parallelism optimizations \cite{su-zhang-mei}.
 
 Blocking optimizations aim at improving the data locality of both space and time dimensions. They are highly related to the tiling strategies widely employed in the modern multi-level cache hierarchy architectures.
  
@@ -62,9 +62,9 @@ Parallelism optimizations refer to the techniques that explore parallelism at di
 However, these optimizations can be categorized according to their complexity of implementation (programmer efforts), benefit improvement (performance) and implementation tightness regarding hardware (dependence) \cite{cruz}.
 
 \mypar{Related work} 
-In the article `\textit{Acceleration of real-life stencil codes on GPUs}' \cite{barigou} there is a detailed description of the loop tiling transformation, the CUDA programming model, and GPU architecture consists. Then, it explores the possible tiling approaches that can be applied to such stencil patterns; it describes 3 interesting approaches: 2D tiles, time-skewing+time-tiling transformation, and performing redundant computations inside tiles.
+In the article `\textit{Acceleration of real-life stencil codes on GPUs}' \cite{barigou} there is a detailed description of the loop tiling transformation, the CUDA programming model, and GPU architecture consists. Then, it explores the possible tiling approaches that can be applied to such Stencil patterns; it describes 3 interesting approaches: 2D tiles, time-skewing+time-tiling transformation, and performing redundant computations inside tiles.
 
-The article `\textit{High-Performance Code Generation for Stencil Computations on GPU Architectures}' \cite{holewinski-pouchet-sadayappan} introduces an automatic code generation scheme for stencil computations on GPU architectures. This scheme uses overlapped tiling to provide efficient time tiling on GPU architectures, which are massively threaded but are susceptible to performance degradation due to branch divergence and a lack of memory coalescing. 
+The article `\textit{High-Performance Code Generation for Stencil Computations on GPU Architectures}' \cite{holewinski-pouchet-sadayappan} introduces an automatic code generation scheme for Stencil computations on GPU architectures. This scheme uses overlapped tiling to provide efficient time tiling on GPU architectures, which are massively threaded but are susceptible to performance degradation due to branch divergence and a lack of memory coalescing. 
 
 However, this article tries to apply multi-core architecture optimizations using OpenMP instead of using CUDA programming models and GPU architecture like in the related works.
 
@@ -198,7 +198,7 @@ for (x = 1; x < N - 1; x++)
 \end{lstlisting}
 
 \mypar{Loop tiling}
-The next step is editing the code by applying tiling optimization. In order to apply this type of optimization it has been necessary to cut the \textbf{A} matrices into multiple smaller \textit{tiles}; due to it has been introduced into the code a new variable ``tile\textunderscore size'' which expresses the tile size, and two nested loops that have the goal of executing the code on the different tiles. On the tiling loops (with \textit{xx} and \textit{yy} variables) it has been applied the ``#pragma omp parallel for collapse(2)'' directive in order to distribute the matrices tiles on multiple threads. Different tile sizes have been chosen depending on several points of view like L2 Cache size, etc. The result of this step is four different algorithms, identical but with different tile sizes:
+The next step is editing the code by applying tiling optimization. In order to apply this type of optimization it has been necessary to cut the \textbf{A} matrix into multiple smaller \textit{tiles}; due to it has been introduced into the code a new variable ``tile\textunderscore size'' which expresses the tile size, and two nested loops that have the goal of executing the code on the different tiles. On the tiling loops (with \textit{xx} and \textit{yy} variables) it has been applied the ``#pragma omp parallel for collapse(2)'' directive in order to distribute the matrices tiles on multiple threads. Different tile sizes have been chosen depending on several points of view like L2 Cache size, etc. The result of this step is four different algorithms, identical but with different tile sizes:
 
 \renewcommand{\lstlistingname}{Algorithm}
 
@@ -236,7 +236,7 @@ const int tile_size = 5461;
 \end{lstlisting}
 
 \mypar{Dimension augmentation}
-The next step is editing the \textit{tiled} code by applying two more dimensions to the original stencil code. In order to apply this step, it has been necessary to edit the internal loops (with \textit{x} and \textit{y} variables) condition from ``MIN(xx + tile\textunderscore size, N - 1)'' to ``MIN(xx + tile\textunderscore size, N - 3)''. Because of the tiling optimization, the code has been executed on different tile sizes depending on several points of view like L2 Cache size, etc. The result of this step is four different algorithms, identical but with different tile sizes:
+The next step is editing the \textit{tiled} code by applying two more dimensions to the original Stencil code. In order to apply this step, it has been necessary to edit the internal loops (with \textit{x} and \textit{y} variables) condition from ``MIN(xx + tile\textunderscore size, N - 1)'' to ``MIN(xx + tile\textunderscore size, N - 3)''. Because of the tiling optimization, the code has been executed on different tile sizes depending on several points of view like L2 Cache size, etc. The result of this step is four different algorithms, identical but with different tile sizes:
 
 \renewcommand{\lstlistingname}{Algorithm}
 
@@ -397,7 +397,7 @@ Here the following are represented the execution timings for every experiment th
 \end{itemize}
 
 \section{Conclusions}
-This article presents a number of different approaches to optimize the above-detailed stencil computations algorithm on multi-core architectures, based on a
+This article presents a number of different approaches to optimize the above-detailed Stencil computations algorithm on multi-core architectures, based on a
 range of micro benchmarks.
 For the \textbf{loop interchange} optimization, it indicates that the standard loop \textit{x-y} is faster than the \textit{y-x} loop, this is favored by the C programming language memory layout.
 For the \textbf{optimization flags} optimization, it indicates that the best flag to use for compiling the code is the -O3.
