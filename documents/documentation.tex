@@ -38,16 +38,16 @@
 \maketitle
 
 \begin{abstract}
-This article tries to apply several types of optimizations to a Stencil computation algorithm, in order to minimize the computation execution time. In this document are treated the concepts of OpenMP multithreading code optimizations, loop interchange optimization, parallel loops optimizations, and loop tiling optimizations. From the experiment results, the best optimization to apply to the chosen Stencil computation algorithm is loop tiling. It also tries to increase the algorithm dimension on the optimized code in order to compare the performances increase/decrease.
+This article tries to apply several types of optimizations to a Stencil computation algorithm, to minimize the computation execution time. This document explores the concepts of OpenMP multithreading code optimizations, loop interchange optimization, parallel loops optimizations, and loop tiling optimizations. From the experiment results we see that the best optimization to apply to the chosen Stencil computation algorithm is loop tiling. It also tries to increase the algorithm dimension on the optimized code to compare the performances increase/decrease.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
 
-Stencil computation has been a research topic for decades in a variety of domains including computational electromagnetics \cite{taflove}, solution of PDEs using finite difference or finite volume discretizations \cite{smith}, and image processing for CT and MRI imaging \cite{cong-huang-zou}\cite{cong-zou}. In the finite-difference computation process, Stencil computation is often iteratively used to solve the differential operator. In these scientific and engineering applications, Stencil is often the most vital and time-consuming computing kernel \cite{su-zhang-mei}.
+Stencil computation has been a research topic for decades in a variety of domains including computational electromagnetics \cite{taflove}, solution of PDEs using finite difference or finite volume discretization \cite{smith}, and image processing for CT and MRI imaging \cite{cong-huang-zou}\cite{cong-zou}. In the finite-difference computation process, Stencil computation is often iteratively used to solve the differential operator. In these scientific and engineering applications, Stencil is often the most vital and time-consuming computing kernel \cite{su-zhang-mei}.
 
-The general computation pattern of Stencil computation is that the central point accumulates the contributions of neighbor points in every axis of the Cartesian coordinate system \cite{su-zhang-mei}. The number of neighbor points in each axis or grid step of the Stencil computation corresponds to the accuracy of the Stencil. The more neighbor elements involved in the computation, the higher accuracy the computation obtains. The computation is then repeated for every point of the grid domain as an iterative operator of the PDEs. Due to the structure of the Stencil computation, two inherent problems exist:
+The general computation pattern of Stencil computation is that the central point accumulates the contributions of neighbour points in every axis of the Cartesian coordinate system \cite{su-zhang-mei}. The number of neighbour points in each axis or grid step of the Stencil computation, corresponds to the accuracy of the Stencil. The more neighbour elements involved in the computation, the higher accuracy the computation obtains. The computation is then repeated for every point of the grid domain as an iterative operator of the PDEs. Due to the structure of the Stencil computation, two inherent problems exist:
 \begin{itemize}
-	\item First, it is the non-continuous memory access pattern. There exist distances among elements needed for the computation except those in the innermost or unit-stride dimension. Many more cycles in latencies are required to access these points. 
+	\item First, it is the non-continuous memory access pattern. There exist distances among elements needed for the computation, except those in the innermost or unit-stride dimension. Many more cycles in latencies are required to access these points. 
 	\item Second, it is the low arithmetic intensity and poor data reuse. Just one point is updated with all the elements loaded. The data reuse between two updates is also limited within the unit-stride dimension, while the other dimensions' elements that are expensive to access have no data reuse at all.
 \end{itemize}
 
@@ -62,7 +62,7 @@ Parallelism optimizations refer to the techniques that explore parallelism at di
 However, these optimizations can be categorized according to their complexity of implementation (programmer efforts), benefit improvement (performance) and implementation tightness regarding hardware (dependence) \cite{cruz}.
 
 \mypar{Related work} 
-In the article `\textit{Acceleration of real-life stencil codes on GPUs}' \cite{barigou} there is a detailed description of the loop tiling transformation, the CUDA programming model, and GPU architecture consists. Then, it explores the possible tiling approaches that can be applied to such Stencil patterns; it describes 3 interesting approaches: 2D tiles, time-skewing+time-tiling transformation, and performing redundant computations inside tiles.
+In the article `\textit{Acceleration of real-life stencil codes on GPUs}' \cite{barigou} there is a detailed description of what the loop tiling transformation, the CUDA programming model, and GPU architecture consist of. Then, it explores the possible tiling approaches that can be applied to such Stencil patterns; it describes 3 interesting approaches: 2D tiles, time-skewing+time-tiling transformation, and performing redundant computations inside tiles.
 
 The article `\textit{High-Performance Code Generation for Stencil Computations on GPU Architectures}' \cite{holewinski-pouchet-sadayappan} introduces an automatic code generation scheme for Stencil computations on GPU architectures. This scheme uses overlapped tiling to provide efficient time tiling on GPU architectures, which are massively threaded but are susceptible to performance degradation due to branch divergence and a lack of memory coalescing. 
 
@@ -70,7 +70,7 @@ However, this article tries to apply multi-core architecture optimizations using
 
 \section{Background}\label{sec:background}
 
-In order to understand the described work, it is important to know something about multi-core, and code optimizations using OpenMP.
+In order to understand the described work, it is important to know something about multi-core and code optimizations using OpenMP.
 
 \mypar{The multi-core architecture}
 Multicore refers to an architecture in which a single physical processor incorporates the core logic of more than one processor. A single integrated circuit is used to package or hold these processors. These single integrated circuits are known as a die. Multicore architecture places multiple processor cores and bundles them as a single physical processor. The objective is to create a system that can complete more tasks at the same time, thereby gaining better overall system performance \cite{techopedia}.
@@ -92,14 +92,14 @@ A parallel for loop is a for loop in which the statements in the loop can be run
 In OpenMP the \textit{parallel loop} construct is a shortcut for specifying a parallel construct containing a loop construct with one or more associated loops and no other statements \cite{omp-parallel}. 
 
 \mypar{Loop tiling}
-Loop tiling transformation (or simply tiling) consists of partitioning an iteration domain into many regular and uniform tiles \cite{barigou}. A tile is thus a subset of iteration points. Executing a tile corresponds to the execution of all the iteration points it contains. A tiles execution is atomic, which means if a tile execution starts, it cannot be interrupted until it reaches its last iteration point. This condition implies that no data can be exchanged between two concurrent tiles. This transformation allows data to be accessed in blocks (tiles), with the block size defined as a parameter of this transformation. Each loop is transformed into two loops: one iterating inside each block (intratile) and the other one iterating over the blocks (intertile) \cite{loop-tiling}. 
+Loop tiling transformation (or simply tiling) consists of partitioning an iteration domain into many regular and uniform tiles \cite{barigou}. A tile is thus a subset of iteration points. Executing a tile corresponds to the execution of all the iteration points it contains. A tile's execution is atomic, which means if a tile execution starts, it cannot be interrupted until it reaches its last iteration point. This condition implies that no data can be exchanged between two concurrent tiles. This transformation allows data to be accessed in blocks (tiles), with the block size defined as a parameter of this transformation. Each loop is transformed into two loops: one iterating inside each block (intratile) and the other one iterating over the blocks (intertile) \cite{loop-tiling}. 
 
 \section{The applied method}\label{sec:yourmethod}
 
-The main goal of this experiment is to minimize as soon as possible the computation time of the chosen algorithm for Stencil Computation. This operation is done by using the above explained techniques: \textit{loop interchange}, \textit{optimization flags}, \textit{parallel loops} and \textit{loop tiling}.
+The main goal of this experiment is to minimize the computation time of the chosen algorithm for Stencil Computation as soon as possible. This operation is done by using the above explained techniques: \textit{loop interchange}, \textit{optimization flags}, \textit{parallel loops} and \textit{loop tiling}.
 
 \mypar{Starting Alogrithm}
-First of all, it's important to show what is the used algorithm that the experiment tries to improve.
+First of all, it's important to show what the used algorithm that the experiment tries to improve is.
 \begin{lstlisting}
 for (x = 1; x < N - 1; x++)
 {
@@ -159,7 +159,7 @@ clang code.c -o code.out -fopenmp -O3
 \end{lstlisting}
 
 \mypar{Parallel Loops}
-The next step is editing the code by applying the parallel loops optimization. In order to distribute the execution of a loop into multiple threads, it has been used the ``#pragma omp parallel for'' \cite{omp-parallel}\cite{omp-for} directive; this directive opens a parallel region and schedules the loop into multiple threads. The directive could be applied to each loop, also on both. For applying the directive on both loops, it has been used the ``#pragma omp parallel for collapse(2)'' \cite{omp-collapse} directive which is able to distribute two nested loops on multiple threads. The result of this step is three different algorithms:
+The next step is editing the code by applying the parallel loops optimization. In order to distribute the execution of a loop into multiple threads, it has been used the ``#pragma omp parallel for'' \cite{omp-parallel}\cite{omp-for} directive; this directive opens a parallel region and schedules the loop into multiple threads. The directive could be applied to each loop, also on both. To apply the directive on both loops, it has been used the ``#pragma omp parallel for collapse(2)'' \cite{omp-collapse} directive which is able to distribute two nested loops on multiple threads. The result of this step is three different algorithms:
 
 \setcounter{lstlisting}{2}
 \renewcommand{\lstlistingname}{Algorithm}
@@ -198,7 +198,7 @@ for (x = 1; x < N - 1; x++)
 \end{lstlisting}
 
 \mypar{Loop tiling}
-The next step is editing the code by applying tiling optimization. In order to apply this type of optimization it has been necessary to cut the \textbf{A} matrix into multiple smaller \textit{tiles}; due to it has been introduced into the code a new variable ``tile\textunderscore size'' which expresses the tile size, and two nested loops that have the goal of executing the code on the different tiles. On the tiling loops (with \textit{xx} and \textit{yy} variables) it has been applied the ``#pragma omp parallel for collapse(2)'' directive in order to distribute the matrices tiles on multiple threads. Different tile sizes have been chosen depending on several points of view like L2 Cache size, etc. The result of this step is four different algorithms, identical but with different tile sizes:
+The next step is editing the code by applying tiling optimization. In order to apply this type of optimization it has been necessary to cut the \textbf{A} matrix into multiple smaller \textit{tiles}; For this a new variable has been introduced into the code ``tile\textunderscore size'' which expresses the tile size, and two nested loops that have the goal of executing the code on the different tiles. On the tiling loops (with \textit{xx} and \textit{yy} variables) it has been applied the ``#pragma omp parallel for collapse(2)'' directive in order to distribute the matrices tiles on multiple threads. Different tile sizes have been chosen depending on several points of view like L2 Cache size, etc. The result of this step is four different algorithms, identical but with different tile sizes:
 
 \renewcommand{\lstlistingname}{Algorithm}
 
@@ -329,7 +329,7 @@ for (x = 0; x < N; x++)
 \end{lstlisting}
 
 \mypar{Results}
-Here the following are represented the execution timings for every experiment that has been done.
+Here the following execution timings are represented for every experiment that has been done.
 
 \begin{itemize}
 	\item \textbf{Loop interchange} computation time of: 
@@ -397,9 +397,9 @@ Here the following are represented the execution timings for every experiment th
 \end{itemize}
 
 \section{Conclusions}
-This article presents a number of different approaches to optimize the above-detailed Stencil computations algorithm on multi-core architectures, based on a range of micro benchmarks.
+This article presents a number of different approaches to optimize the above-detailed Stencil computation's algorithm on multi-core architectures, based on a range of micro benchmarks.
 For the \textbf{loop interchange} optimization, it indicates that the standard loop \textit{x-y} is faster than the \textit{y-x} loop, this is favored by the C programming language memory layout.
-For the \textbf{optimization flags} optimization, it indicates that the best flag to use for compiling the code is the -O3.
+For the \textbf{optimization flags} optimization, it indicates that the best flag to use to compile the code is the -O3.
 For the \textbf{parallel loop} optimization, it indicates that having only one parallel loop on the external loop is faster.
 For the \textbf{loop tiling} optimization, it indicates that having a \textit{tile\textunderscore size} of \textit{8192} is faster.
 About the \textbf{dimension} of the Stencil computation algorithm, it shows that by augmenting the number of dimensions of two, the computation is faster with \textbf{loop tiling} optimization than having a lower number of dimensions. In the table \ref{table:optimization-summary} is shown a summary with the best running time, relative and absolute speedups for every code optimization.
@@ -423,7 +423,7 @@ About the \textbf{dimension} of the Stencil computation algorithm, it shows that
 \label{table:optimization-summary}
 \end{table}
 
-In future work, would be interesting to try to implement what is the maximum number of dimension augmentation that offers a lower computation timing.
+In future work, it would be interesting to try to implement what is the maximum number of dimension augmentation that offers a lower computation timing.
 
 
 \begin{thebibliography}{1}
@@ -482,5 +482,3 @@ João M.P.Cardoso, José Gabriel F. Coutinho, Pedro C. Diniz. Chapter 5 - Source
 \end{thebibliography}
 
 \end{document}
-
-
